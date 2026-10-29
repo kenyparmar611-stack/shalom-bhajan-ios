@@ -1,0 +1,41 @@
+name: Build iOS IPA (SHALOM BHAJAN)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find Xcode Project and Build unsigned .app
+        run: |
+          PROJ_PATH=$(find . -name "ShalomBhajan.xcodeproj" | head -n 1)
+          echo "Found project at: $PROJ_PATH"
+          PROJ_DIR=$(dirname "$PROJ_PATH")
+          cd "$PROJ_DIR"
+          xcodebuild -project ShalomBhajan.xcodeproj \
+            -scheme ShalomBhajan \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$GITHUB_WORKSPACE/build" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Package .app into SHALOM_BHAJAN.ipa
+        run: |
+          mkdir -p Payload
+          cp -r "$GITHUB_WORKSPACE/build/Build/Products/Release-iphoneos/ShalomBhajan.app" Payload/
+          zip -r SHALOM_BHAJAN.ipa Payload
+
+      - name: Upload SHALOM_BHAJAN.ipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SHALOM_BHAJAN_iOS_IPA
+          path: SHALOM_BHAJAN.ipa
